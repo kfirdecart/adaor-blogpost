@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdaOr: Turning Edit Intensity into a Slider | Decart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="https://decart.ai" class="nav-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M11 2v8H3v2h8v8h2v-8h8v-2h-8V2h-2z" fill="#3d4cf5"/>
+    </svg>
+    <span>decart</span>
+  </a>
+  <div class="nav-links">
+    <a href="https://decart.ai">Research</a>
+    <a href="https://arxiv.org/abs/2602.03826">Paper</a>
+    <a href="https://decart.ai/blog">Blog</a>
+    <a href="https://adaor-paper.github.io/" class="nav-cta">Project Page</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="hero-meta">
+    <span class="hero-tag">Research</span>
+    <span class="hero-date">February 2026</span>
+  </div>
+  <h1 class="hero-title">What if video editing had<br>a <em>volume knob</em>?</h1>
+  <p class="hero-subtitle">
+    Text-driven video editing lets you describe <em>what</em> to change.
+    But what about <em>how much</em>? We introduce Adaptive-Origin Guidance (AdaOr),
+    a method that turns edit intensity into a smooth, continuous slider.
+  </p>
+</header>
+
+<!-- Hero Interactive Slider -->
+<section class="hero-demo section-interactive">
+  <div class="section-inner">
+    <div class="demo-slider-container">
+      <div class="demo-prompt-bar">
+        <span class="prompt-icon">✎</span>
+        <span class="prompt-text">"Replace the white bunny with a chocolate bunny made of brown chocolate"</span>
+      </div>
+
+      <div class="video-slider-wrapper">
+        <div class="video-display" id="heroVideoDisplay">
+          <div class="video-alpha-badge" id="heroAlphaBadge">α = 0.00</div>
+        </div>
+
+        <div class="slider-control">
+          <div class="slider-labels">
+            <span>Original</span>
+            <span>Full Edit</span>
+          </div>
+          <div class="slider-track-wrapper">
+            <input type="range" min="0" max="100" value="0" class="styled-slider" id="heroSlider">
+            <div class="slider-fill" id="heroSliderFill"></div>
+          </div>
+          <div class="slider-value-display">
+            Edit Intensity: <strong id="heroSliderValue">0%</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section: The Problem -->
+<section class="section" id="problem">
+  <div class="section-inner">
+    <div class="section-label">/01</div>
+    <h2>The "take it or leave it" problem</h2>
+    <div class="prose">
+      <p>
+        Modern video editing models are remarkably powerful. You type
+        <em>"turn the coat into a furry coat"</em> and the model delivers.
+        But here's the catch, there's no precise way to expresse <em>how much</em> to edit - 
+        "make it <em>a little</em> furry" or "make it <em>extremely</em> furry." is a fuzzy and discrete choice, not a precise and continuous one.
+      </p>
+      <p>
+        Want to turn a sunny scene into a snowy one? Great. But what if you
+        want just a <em>light dusting</em> of snow, not a full blizzard? Or what
+        if you want to add a beard to a portrait, from light stubble to
+        a full lumberjack? Today's models give you the lumberjack and nothing in between.
+      </p>
+      <p>
+        This feels like it should be a solved problem. After all, diffusion models
+        already have a knob that controls how much the model is following to your prompt:
+        <strong>Classifier-Free Guidance (CFG)</strong>. Turn CFG up and the model
+        follows your instructions more closely. Turn it down and… well,
+        that's where things get interesting.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Why CFG Fails -->
+<section class="section section-alt" id="cfg-problem">
+  <div class="section-inner">
+    <div class="section-label">/02</div>
+    <h2>Why the obvious solution doesn't work</h2>
+    <div class="prose">
+      <p>
+        You might expect that lowering the CFG scale would smoothly reduce the edit
+        , from full edit down to the original, untouched video. But it doesn't.
+        Instead of getting "less editing," you get <strong>weird, arbitrary edits</strong>.
+      </p>
+      <p>
+        Here's the intuition. CFG works by combining two predictions: one
+        <em>with</em> your prompt and one <em>without</em>. The formula is
+        deceptively simple:
+      </p>
+    </div>
+
+    <div class="equation-block">
+      <div class="equation">
+        <span class="eq-label">Classifier-Free Guidance</span>
+        <span class="eq-content">output = <span class="eq-highlight-origin">ε(∅)</span> + w · ( <span class="eq-highlight-cond">ε(prompt)</span> − <span class="eq-highlight-origin">ε(∅)</span> )</span>
+      </div>
+      <div class="equation-annotations">
+        <div class="eq-annotation">
+          <span class="eq-dot eq-dot-origin"></span>
+          <span><strong>ε(∅)</strong> = prediction without prompt (the "origin")</span>
+        </div>
+        <div class="eq-annotation">
+          <span class="eq-dot eq-dot-cond"></span>
+          <span><strong>ε(prompt)</strong> = prediction with your prompt</span>
+        </div>
+        <div class="eq-annotation">
+          <span class="eq-dot eq-dot-w"></span>
+          <span><strong>w</strong> = guidance scale (the "volume knob")</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="prose">
+      <p>
+        Read it this way: start at the <strong>origin</strong> (the no-prompt prediction),
+        then steer toward the prompt by some amount <strong>w</strong>. When w is large,
+        you get strong prompt adherence. When w approaches zero, the output collapses
+        back to that origin.
+      </p>
+      <p>
+        In standard text-to-image generation, the origin ε(∅) represents "a random natural
+        image." That works fine. But in <strong>editing models</strong>,
+        the model is also conditioned on an input image, so the origin represents
+        "a random <em>edit</em> of the input."
+        It's not "no edit", it's "some arbitrary, uncontrolled edit."
+      </p>
+      <p>
+        So when you turn w down to get less editing, you're actually
+        <strong>drifting toward a random edit</strong>, not toward the original image.
+        The origin is wrong.
+      </p>
+    </div>
+
+    <div class="diagram-block">
+      <div class="diagram-card">
+        <div class="diagram-icon">⊘</div>
+        <h4>Standard CFG</h4>
+        <p>Varying the CFG scale does not smoothly reduce the edit. Low values produce <em>arbitrary, random edits</em>, not the original.</p>
+        <div class="diagram-filmstrip">
+          <img src="images/cfg/0.7.jpg" alt="">
+          <img src="images/cfg/1.4.jpg" alt="">
+          <img src="images/cfg/2.8.jpg" alt="">
+          <img src="images/cfg/4.2.jpg" alt="">
+          <img src="images/cfg/5.0.jpg" alt="">
+        </div>
+        <div class="filmstrip-axis">
+          <span>Low CFG</span>
+          <span class="filmstrip-arrow">→</span>
+          <span>High CFG</span>
+        </div>
+      </div>
+      <div class="diagram-card diagram-card-highlight">
+        <div class="diagram-icon">◎</div>
+        <h4>AdaOr (Ours)</h4>
+        <p>Our edit strength α creates a <em>smooth, continuous transition</em> from the untouched input to the fully edited result.</p>
+        <div class="diagram-filmstrip">
+          <img src="images/adaor/0.000.jpg" alt="">
+          <img src="images/adaor/0.286.jpg" alt="">
+          <img src="images/adaor/0.571.jpg" alt="">
+          <img src="images/adaor/0.714.jpg" alt="">
+          <img src="images/adaor/0.857.jpg" alt="">
+        </div>
+        <div class="filmstrip-axis">
+          <span>Original</span>
+          <span class="filmstrip-arrow">→</span>
+          <span>Full Edit</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Our Insight -->
+<section class="section" id="insight">
+  <div class="section-inner">
+    <div class="section-label">/03</div>
+    <h2>A new origin: teaching the model to do <em>nothing</em></h2>
+    <div class="prose">
+      <p>
+        Our key insight is simple but powerful: <strong>the guidance origin
+        needs to change.</strong> Instead of starting from "random edit,"
+        we need to start from "no edit", the <em>identity transformation</em>.
+      </p>
+      <p>
+        We do this by introducing a special instruction token, <code>&lt;id&gt;</code>,
+        that we train the model to associate with <em>doing nothing</em>. When the
+        model sees this token, it learns to reproduce the input exactly. This gives us
+        a new direction in the diffusion space, one that represents
+        <strong>faithful reconstruction</strong>.
+      </p>
+      <p>
+        With this identity direction in hand, we define <strong>Adaptive-Origin
+        Guidance (AdaOr)</strong>. Instead of using the unconditional prediction
+        as a fixed origin, we <em>interpolate</em> between our identity prediction
+        and the standard unconditional prediction, based on the desired edit strength α:
+      </p>
+    </div>
+
+    <div class="equation-block">
+      <div class="equation">
+        <span class="eq-label">Adaptive Origin</span>
+        <span class="eq-content">origin(α) = s(α) · <span class="eq-highlight-origin">ε(∅)</span> + (1 − s(α)) · <span class="eq-highlight-id">ε(⟨id⟩)</span></span>
+      </div>
+      <div class="equation-caption">
+        At α = 0, the origin is pure identity → faithful reconstruction.<br>
+        At α = 1, the origin is the standard unconditional → full editing power.
+      </div>
+    </div>
+
+    <div class="prose">
+      <p>
+        The beauty of this formulation is its <strong>boundary conditions</strong>.
+        When edit strength is zero, the model faithfully reconstructs the input. When
+        edit strength is one, it recovers the standard CFG behavior, the model's
+        full editing capability, exactly as if AdaOr wasn't there. Everything in
+        between is a smooth, continuous transition.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- VISUAL 2: 2D Interactive Surface -->
+<section class="section" id="demo-surface">
+  <div class="section-inner">
+    <div class="section-label">/04</div>
+    <h2>Why you need <em>both</em> knobs</h2>
+    <div class="prose">
+      <p>
+        To really understand why AdaOr matters, let's look at what happens when you
+        vary CFG scale versus our edit strength independently. The surface below
+        shows a 2D space: one axis is the standard CFG scale, the other is our
+        AdaOr edit strength α. Drag the knob around to explore.
+      </p>
+    </div>
+
+    <div class="surface-container">
+      <div class="surface-prompt-bar">
+        <span class="prompt-icon">✎</span>
+        <span class="prompt-text">"Add an elegant Italian masquerade mask"</span>
+      </div>
+
+      <div class="surface-wrapper">
+        <div class="surface-y-label">
+          <span>CFG Scale →</span>
+        </div>
+        <div class="surface-main">
+          <div class="surface-grid" id="surfaceGrid">
+            <canvas id="surfaceCanvas" width="560" height="560"></canvas>
+            <div class="surface-knob" id="surfaceKnob">
+              <div class="knob-inner"></div>
+            </div>
+          </div>
+          <div class="surface-x-axis">
+            <span>0</span>
+            <span class="axis-title">AdaOr Edit Strength (α) →</span>
+            <span>1</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="surface-readout" id="surfaceReadout">
+        <div class="readout-item">
+          <span class="readout-label">AdaOr α</span>
+          <span class="readout-value" id="readoutAlpha">0.00</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">CFG Scale</span>
+          <span class="readout-value" id="readoutCFG">1.0</span>
+        </div>
+      </div>
+
+      <div class="surface-insight">
+        <div class="insight-row">
+          <div class="insight-card">
+            <div class="insight-marker" style="background: #ff4444;">✕</div>
+            <p><strong>CFG alone</strong> (bottom row): Lowering CFG doesn't reduce the edit, it produces arbitrary, inconsistent results.</p>
+          </div>
+          <div class="insight-card">
+            <div class="insight-marker" style="background: #44ff88;">✓</div>
+            <p><strong>AdaOr α</strong> (right column): Our edit strength creates a smooth, semantically meaningful transition from input to edit.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VISUAL 3: Multiple Examples with Sliders -->
+<section class="section section-alt" id="demo-examples">
+  <div class="section-inner">
+    <div class="section-label">/05</div>
+    <h2>Try it yourself</h2>
+    <p class="section-desc">
+      Each example below has its own slider. Drag to explore how AdaOr smoothly
+      controls the edit intensity across different prompts and content types.
+    </p>
+
+    <div class="examples-grid">
+
+      <div class="example-card" data-example="snow">
+        <div class="example-prompt">"Add snow covering the ground, making it look like winter"</div>
+        <div class="example-video-frame">
+          <div class="placeholder-video">
+            <div class="placeholder-label">Snow scene video</div>
+          </div>
+        </div>
+        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
+        <div class="example-slider-wrapper">
+          <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
+          <div class="slider-fill example-slider-fill"></div>
+        </div>
+        <div class="example-filmstrip" id="filmstrip-snow">
+          <div class="filmstrip-inner"></div>
+        </div>
+      </div>
+
+      <div class="example-card" data-example="hair">
+        <div class="example-prompt">"Add full thick long hair to the man"</div>
+        <div class="example-video-frame">
+          <div class="placeholder-video">
+            <div class="placeholder-label">Hair edit video</div>
+          </div>
+        </div>
+        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
+        <div class="example-slider-wrapper">
+          <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
+          <div class="slider-fill example-slider-fill"></div>
+        </div>
+        <div class="filmstrip-inner"></div>
+      </div>
+
+      <div class="example-card" data-example="lion">
+        <div class="example-prompt">"Replace the dog with a lion"</div>
+        <div class="example-video-frame">
+          <div class="placeholder-video">
+            <div class="placeholder-label">Dog → Lion video</div>
+          </div>
+        </div>
+        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
+        <div class="example-slider-wrapper">
+          <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
+          <div class="slider-fill example-slider-fill"></div>
+        </div>
+        <div class="filmstrip-inner"></div>
+      </div>
+
+      <div class="example-card" data-example="kimono">
+        <div class="example-prompt">"Change the yellow dress to a pink kimono"</div>
+        <div class="example-video-frame">
+          <div class="placeholder-video">
+            <div class="placeholder-label">Dress → Kimono video</div>
+          </div>
+        </div>
+        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
+        <div class="example-slider-wrapper">
+          <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
+          <div class="slider-fill example-slider-fill"></div>
+        </div>
+        <div class="filmstrip-inner"></div>
+      </div>
+
+      <div class="example-card" data-example="robot">
+        <div class="example-prompt">"Transform the teddy bear into a robotic bear with metallic surfaces"</div>
+        <div class="example-video-frame">
+          <div class="placeholder-video">
+            <div class="placeholder-label">Teddy → Robot video</div>
+          </div>
+        </div>
+        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
+        <div class="example-slider-wrapper">
+          <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
+          <div class="slider-fill example-slider-fill"></div>
+        </div>
+        <div class="filmstrip-inner"></div>
+      </div>
+
+      <div class="example-card" data-example="sculpture">
+        <div class="example-prompt">"Transform the man into a plastic sculpture"</div>
+        <div class="example-video-frame">
+          <div class="placeholder-video">
+            <div class="placeholder-label">Man → Sculpture video</div>
+          </div>
+        </div>
+        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
+        <div class="example-slider-wrapper">
+          <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
+          <div class="slider-fill example-slider-fill"></div>
+        </div>
+        <div class="filmstrip-inner"></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- Section: How It Works (Technical) -->
+<section class="section" id="technical">
+  <div class="section-inner">
+    <div class="section-label">/06</div>
+    <h2>Under the hood</h2>
+    <div class="prose">
+      <p>
+        The full AdaOr guidance combines our adaptive origin with the standard CFG
+        steering direction, scaled by the edit strength:
+      </p>
+    </div>
+
+    <div class="equation-block equation-block-wide">
+      <div class="equation">
+        <span class="eq-content">output = <span class="eq-highlight-id">origin(α)</span> + α · w · ( <span class="eq-highlight-cond">ε(prompt)</span> − <span class="eq-highlight-origin">ε(∅)</span> )</span>
+      </div>
+    </div>
+
+    <div class="prose">
+      <p>
+        The key components are:
+      </p>
+    </div>
+
+    <div class="tech-cards">
+      <div class="tech-card">
+        <div class="tech-card-num" style="background: #059669;">1</div>
+        <h4>origin(α)</h4>
+        <p>
+          The adaptive origin. Interpolates between ε(⟨id⟩), the identity prediction
+          (faithful reconstruction), and ε(∅), the standard unconditional prediction.
+          At α = 0, it's pure identity. At α = 1, it recovers standard CFG.
+        </p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-num">2</div>
+        <h4>α</h4>
+        <p>
+          The edit strength. Scales both the origin interpolation and
+          the steering direction. At α = 0, there's no edit. At α = 1,
+          you get the model's full editing power.
+        </p>
+      </div>
+      <div class="tech-card">
+        <div class="tech-card-num" style="background: #d97706;">3</div>
+        <h4>ε(prompt) − ε(∅)</h4>
+        <p>
+          The steering direction. Points from the unconditional prediction
+          toward the prompt-conditioned prediction.
+          Scaled by w (the CFG scale) and α (the edit strength).
+        </p>
+      </div>
+    </div>
+
+    <div class="prose" style="margin-top: 3rem;">
+      <h3>Why not just replace the null with ⟨id⟩ everywhere?</h3>
+      <p>
+        A natural question: if ⟨id⟩ represents "no edit," why not simply swap it
+        in for the unconditional term in standard CFG?  It turns out this creates
+        instability. The identity prediction tries to pull the latent back to the
+        input image, and as the denoising process approaches its final steps
+        (where noise levels drop to near zero), this pulling force
+        <strong>diverges to infinity</strong>, causing the generation to blow up.
+      </p>
+      <p>
+        Our adaptive origin avoids this by <em>gracefully transitioning away</em>
+        from the identity term as edit strength increases, ensuring stable behavior
+        throughout the denoising process.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Section: Closing -->
+<section class="section" id="closing">
+  <div class="section-inner">
+    <div class="section-label">/07</div>
+    <h2>Editing should be expressive</h2>
+    <div class="prose">
+      <p>
+        Text-driven editing unlocked the ability to say <em>what</em> to change.
+        AdaOr completes the picture by giving you control over <em>how much</em>.
+        A simple identity token, a rethought guidance origin, and suddenly every
+        edit becomes a smooth, explorable spectrum.
+      </p>
+      <p>
+        We believe this principle, teaching models explicit representations of
+        "no change", has implications beyond editing. Anywhere diffusion models
+        use guidance, there's an opportunity to build better, more controllable
+        knobs.
+      </p>
+    </div>
+
+    <div class="cta-row">
+      <a href="https://arxiv.org/abs/2602.03826" class="cta-button">Read the paper</a>
+      <a href="https://adaor-paper.github.io/" class="cta-button cta-button-secondary">Project page</a>
+    </div>
+
+    <div class="citation-block">
+      <h4>Citation</h4>
+      <pre><code>@article{wolf2026adaor,
+  title={Continuous Control of Editing Models via Adaptive-Origin Guidance},
+  author={Wolf, Alon and Katzir, Chen and Aberman, Kfir and Patashnik, Or},
+  journal={arXiv preprint arXiv:2602.03826},
+  year={2026}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M11 2v8H3v2h8v8h2v-8h8v-2h-8V2h-2z" fill="#3d4cf5"/>
+      </svg>
+      <span>decart</span>
+    </div>
+    <p class="footer-text">Decart.ai 2026</p>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
