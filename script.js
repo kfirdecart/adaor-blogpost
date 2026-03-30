@@ -289,8 +289,15 @@ function initSurface() {
 }
 
 /* -----------------------------------------------------------
-   VISUAL 3: Multiple Example Sliders
+   VISUAL 3: Multiple Example Sliders (with real videos)
    ----------------------------------------------------------- */
+
+const STANDARD_ALPHAS = [
+  '0.000','0.032','0.065','0.097','0.129','0.161','0.194','0.226',
+  '0.258','0.290','0.323','0.355','0.387','0.419','0.452','0.484',
+  '0.516','0.548','0.581','0.613','0.645','0.677','0.710','0.742',
+  '0.774','0.806','0.839','0.871','0.903','0.935','0.968','1.000'
+];
 
 function initExampleSliders() {
   const cards = document.querySelectorAll('.example-card');
@@ -299,20 +306,84 @@ function initExampleSliders() {
     const slider = card.querySelector('.example-slider');
     const fill = card.querySelector('.example-slider-fill');
     const alphaVal = card.querySelector('.ex-alpha-val');
-    const videoFrame = card.querySelector('.example-video-frame');
+    const display = card.querySelector('.example-video-display');
+    const folder = card.dataset.folder;
+    const alphaData = card.dataset.alphas;
 
-    if (!slider) return;
+    if (!slider || !display || !folder) return;
+
+    const alphas = alphaData === '32'
+      ? STANDARD_ALPHAS
+      : alphaData.split(',');
+
+    const videos = {};
+    let currentIdx = 0;
+
+    alphas.forEach((a, i) => {
+      const video = document.createElement('video');
+      video.src = `${folder}/${a}.mp4`;
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = i < 2 ? 'auto' : 'metadata';
+      video.className = 'example-video-layer';
+      if (i === 0) {
+        video.classList.add('active');
+      }
+      display.insertBefore(video, display.firstChild);
+      videos[i] = video;
+    });
+
+    function findClosestIdx(val) {
+      const target = val / 100;
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < alphas.length; i++) {
+        const dist = Math.abs(parseFloat(alphas[i]) - target);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestIdx = i;
+        }
+      }
+      return bestIdx;
+    }
+
+    function switchVideo(newIdx) {
+      if (newIdx === currentIdx) return;
+      const oldVideo = videos[currentIdx];
+      const newVideo = videos[newIdx];
+
+      newVideo.preload = 'auto';
+      newVideo.currentTime = oldVideo.currentTime;
+      newVideo.play().catch(() => {});
+      newVideo.classList.add('active');
+      oldVideo.classList.remove('active');
+      oldVideo.pause();
+
+      for (let i = Math.max(0, newIdx - 2); i <= Math.min(alphas.length - 1, newIdx + 2); i++) {
+        if (videos[i].preload !== 'auto') videos[i].preload = 'auto';
+      }
+      currentIdx = newIdx;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          videos[currentIdx].play().catch(() => {});
+        } else {
+          videos[currentIdx].pause();
+        }
+      });
+    }, { threshold: 0.3 });
+    observer.observe(card);
 
     slider.addEventListener('input', () => {
-      const val = slider.value / 100;
-      fill.style.width = slider.value + '%';
-      alphaVal.textContent = val.toFixed(2);
-
-      const hue = 45 - val * 30;
-      const sat = 6 + val * 18;
-      const light = 92 - val * 14;
-      videoFrame.querySelector('.placeholder-video').style.background =
-        `linear-gradient(135deg, hsl(${hue}, ${sat}%, ${light}%), hsl(${hue - 15}, ${sat + 5}%, ${light - 3}%))`;
+      const val = slider.value;
+      const alpha = val / 100;
+      fill.style.width = val + '%';
+      alphaVal.textContent = alpha.toFixed(2);
+      const idx = findClosestIdx(val);
+      switchVideo(idx);
     });
   });
 }

@@ -162,40 +162,45 @@
       </p>
     </div>
 
-    <div class="diagram-block">
-      <div class="diagram-card">
-        <div class="diagram-icon">⊘</div>
-        <h4>Standard CFG</h4>
-        <p>Varying the CFG scale does not smoothly reduce the edit. Low values produce <em>arbitrary, random edits</em>, not the original.</p>
-        <div class="diagram-filmstrip">
+    <div class="comparison-block">
+      <div class="comparison-row">
+        <div class="comparison-header">
+          <span class="comparison-icon">⊘</span>
+          <h4>Standard CFG</h4>
+        </div>
+        <div class="comparison-strip">
           <img src="images/cfg/0.7.jpg" alt="">
           <img src="images/cfg/1.4.jpg" alt="">
           <img src="images/cfg/2.8.jpg" alt="">
           <img src="images/cfg/4.2.jpg" alt="">
           <img src="images/cfg/5.0.jpg" alt="">
         </div>
-        <div class="filmstrip-axis">
+        <div class="comparison-axis">
           <span>Low CFG</span>
           <span class="filmstrip-arrow">→</span>
           <span>High CFG</span>
         </div>
+        <p class="comparison-caption">Low values produce <em>arbitrary, random edits</em> (gold face paint, headpiece), not the original.</p>
       </div>
-      <div class="diagram-card diagram-card-highlight">
-        <div class="diagram-icon">◎</div>
-        <h4>AdaOr (Ours)</h4>
-        <p>Our edit strength α creates a <em>smooth, continuous transition</em> from the untouched input to the fully edited result.</p>
-        <div class="diagram-filmstrip">
+
+      <div class="comparison-row comparison-row-highlight">
+        <div class="comparison-header">
+          <span class="comparison-icon comparison-icon-ours">◎</span>
+          <h4>AdaOr (Ours)</h4>
+        </div>
+        <div class="comparison-strip">
           <img src="images/adaor/0.000.jpg" alt="">
           <img src="images/adaor/0.286.jpg" alt="">
           <img src="images/adaor/0.571.jpg" alt="">
           <img src="images/adaor/0.714.jpg" alt="">
           <img src="images/adaor/0.857.jpg" alt="">
         </div>
-        <div class="filmstrip-axis">
+        <div class="comparison-axis">
           <span>Original</span>
           <span class="filmstrip-arrow">→</span>
           <span>Full Edit</span>
         </div>
+        <p class="comparison-caption">A <em>smooth, continuous transition</em> from the untouched face to the masquerade mask.</p>
       </div>
     </div>
   </div>
@@ -328,96 +333,70 @@
 
     <div class="examples-grid">
 
-      <div class="example-card" data-example="snow">
+      <div class="example-card" data-folder="video_examples/pool_to_snow" data-alphas="0.000,0.143,0.286,0.429,0.571,0.714,0.857,1.000">
         <div class="example-prompt">"Add snow covering the ground, making it look like winter"</div>
-        <div class="example-video-frame">
-          <div class="placeholder-video">
-            <div class="placeholder-label">Snow scene video</div>
-          </div>
+        <div class="example-video-display">
+          <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         </div>
-        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         <div class="example-slider-wrapper">
           <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
           <div class="slider-fill example-slider-fill"></div>
         </div>
-        <div class="example-filmstrip" id="filmstrip-snow">
-          <div class="filmstrip-inner"></div>
-        </div>
       </div>
 
-      <div class="example-card" data-example="hair">
+      <div class="example-card" data-folder="video_examples/bald_to_hair" data-alphas="32">
         <div class="example-prompt">"Add full thick long hair to the man"</div>
-        <div class="example-video-frame">
-          <div class="placeholder-video">
-            <div class="placeholder-label">Hair edit video</div>
-          </div>
+        <div class="example-video-display">
+          <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         </div>
-        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         <div class="example-slider-wrapper">
           <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
           <div class="slider-fill example-slider-fill"></div>
         </div>
-        <div class="filmstrip-inner"></div>
       </div>
 
-      <div class="example-card" data-example="lion">
+      <div class="example-card" data-folder="video_examples/dog_to_lion" data-alphas="32">
         <div class="example-prompt">"Replace the dog with a lion"</div>
-        <div class="example-video-frame">
-          <div class="placeholder-video">
-            <div class="placeholder-label">Dog → Lion video</div>
-          </div>
+        <div class="example-video-display">
+          <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         </div>
-        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         <div class="example-slider-wrapper">
           <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
           <div class="slider-fill example-slider-fill"></div>
         </div>
-        <div class="filmstrip-inner"></div>
       </div>
 
-      <div class="example-card" data-example="kimono">
+      <div class="example-card" data-folder="video_examples/kimono" data-alphas="32">
         <div class="example-prompt">"Change the yellow dress to a pink kimono"</div>
-        <div class="example-video-frame">
-          <div class="placeholder-video">
-            <div class="placeholder-label">Dress → Kimono video</div>
-          </div>
+        <div class="example-video-display">
+          <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         </div>
-        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         <div class="example-slider-wrapper">
           <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
           <div class="slider-fill example-slider-fill"></div>
         </div>
-        <div class="filmstrip-inner"></div>
       </div>
 
-      <div class="example-card" data-example="robot">
-        <div class="example-prompt">"Transform the teddy bear into a robotic bear with metallic surfaces"</div>
-        <div class="example-video-frame">
-          <div class="placeholder-video">
-            <div class="placeholder-label">Teddy → Robot video</div>
-          </div>
+      <div class="example-card" data-folder="video_examples/helment_to_pumpkin" data-alphas="32">
+        <div class="example-prompt">"Replace the helmet with a carved pumpkin"</div>
+        <div class="example-video-display">
+          <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         </div>
-        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         <div class="example-slider-wrapper">
           <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
           <div class="slider-fill example-slider-fill"></div>
         </div>
-        <div class="filmstrip-inner"></div>
       </div>
 
-      <div class="example-card" data-example="sculpture">
-        <div class="example-prompt">"Transform the man into a plastic sculpture"</div>
-        <div class="example-video-frame">
-          <div class="placeholder-video">
-            <div class="placeholder-label">Man → Sculpture video</div>
-          </div>
+      <div class="example-card" data-folder="video_examples/man_to_knight" data-alphas="32">
+        <div class="example-prompt">"Transform the man into a medieval knight"</div>
+        <div class="example-video-display">
+          <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         </div>
-        <div class="example-alpha-badge">α = <span class="ex-alpha-val">0.00</span></div>
         <div class="example-slider-wrapper">
           <input type="range" min="0" max="100" value="0" class="styled-slider example-slider">
           <div class="slider-fill example-slider-fill"></div>
         </div>
-        <div class="filmstrip-inner"></div>
       </div>
 
     </div>
